@@ -1,0 +1,70 @@
+name: ThyoCloud Win11 Persistent
+
+on:
+  workflow_dispatch:
+    inputs:
+      iso_url:
+        description: "URL HTTPS da ISO oficial/licenciada do Windows 11"
+        required: true
+        type: string
+      disk_size:
+        description: "Tamanho do disco virtual"
+        required: false
+        default: "64G"
+        type: string
+
+jobs:
+  win11:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 355
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Preparar QEMU
+        shell: bash
+        run: |
+          chmod +x scripts/*.sh
+          ./scripts/prepare.sh
+
+      - name: Baixar ISO
+        shell: bash
+        env:
+          ISO_URL: ${{ inputs.iso_url }}
+        run: |
+          mkdir -p vm
+          curl -L --fail --retry 3 "$ISO_URL" -o vm/windows11.iso
+          ls -lh vm/windows11.iso
+
+      - name: Restaurar disco persistente
+        shell: bash
+        run: |
+          ./scripts/restore.sh
+
+      - name: Criar disco se necessário
+        shell: bash
+        env:
+          DISK_SIZE: ${{ inputs.disk_size }}
+        run: |
+          if [ ! -f vm/windows11.qcow2 ]; then
+            qemu-img create -f qcow2 vm/windows11.qcow2 "$DISK_SIZE"
+          fi
+
+      - name: Mostrar ambiente
+        shell: bash
+        run: |
+          qemu-system-x86_64 --version
+          qemu-img info vm/windows11.qcow2
+
+      - name: Iniciar VM
+        shell: bash
+        run: |
+          chmod +x scripts/run-vm.sh
+          ./scripts/run-vm.sh
+
+      - name: Salvar estado
+        if: always()
+        shell: bash
+        run: |
+          ./scripts/save.sh
