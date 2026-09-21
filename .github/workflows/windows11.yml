@@ -7,10 +7,17 @@ on:
         description: "URL HTTPS da ISO oficial/licenciada do Windows 11"
         required: true
         type: string
+
       disk_size:
         description: "Tamanho do disco virtual"
         required: false
         default: "64G"
+        type: string
+
+      vm_time:
+        description: "Tempo da VM em minutos"
+        required: false
+        default: "330"
         type: string
 
 jobs:
@@ -19,6 +26,7 @@ jobs:
     timeout-minutes: 355
 
     steps:
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -34,7 +42,16 @@ jobs:
           ISO_URL: ${{ inputs.iso_url }}
         run: |
           mkdir -p vm
-          curl -L --fail --retry 3 "$ISO_URL" -o vm/windows11.iso
+
+          echo "Baixando ISO..."
+
+          curl -L \
+            --fail \
+            --retry 5 \
+            --retry-delay 5 \
+            "$ISO_URL" \
+            -o vm/windows11.iso
+
           ls -lh vm/windows11.iso
 
       - name: Restaurar disco persistente
@@ -48,13 +65,30 @@ jobs:
           DISK_SIZE: ${{ inputs.disk_size }}
         run: |
           if [ ! -f vm/windows11.qcow2 ]; then
-            qemu-img create -f qcow2 vm/windows11.qcow2 "$DISK_SIZE"
+            echo "Criando disco virtual..."
+
+            qemu-img create \
+              -f qcow2 \
+              vm/windows11.qcow2 \
+              "$DISK_SIZE"
+          else
+            echo "Disco existente encontrado."
           fi
 
       - name: Mostrar ambiente
         shell: bash
         run: |
+          echo "======================================"
+          echo "QEMU"
+          echo "======================================"
+
           qemu-system-x86_64 --version
+
+          echo ""
+          echo "======================================"
+          echo "DISCO"
+          echo "======================================"
+
           qemu-img info vm/windows11.qcow2
 
       - name: Iniciar VM
@@ -63,8 +97,85 @@ jobs:
           chmod +x scripts/run-vm.sh
           ./scripts/run-vm.sh
 
+          echo ""
+          echo "VM iniciada."
+
+          if [ -f vm/qemu.pid ]; then
+            echo "PID: $(cat vm/qemu.pid)"
+          fi
+
+      - name: Manter VM ativa
+        shell: bash
+        env:
+          VM_TIME: ${{ inputs.vm_time }}
+        run: |
+          echo "======================================"
+          echo "THYOCLOUD WINDOWS 11"
+          echo "======================================"
+          echo ""
+          echo "VM ficará ativa por:"
+          echo "${VM_TIME} minutos"
+          echo ""
+
+          END_TIME=$((SECONDS + VM_TIME * 60))
+
+          while [ "$SECONDS" -lt "$END_TIME" ]; do
+
+            if [ -f vm/qemu.pid ]; then
+              PID=$(cat vm/qemu.pid)
+
+              if kill -0 "$PID" 2>/dev/null; then
+                REMAINING=$((END_TIME - SECONDS))
+
+                echo "Windows ativo | PID=$PID | restante=${REMAINING}s"
+
+                sleep 30
+              else
+                echo "QEMU encerrou."
+
+                break
+              fi
+            else
+              echo "PID do QEMU não encontrado."
+
+              break
+            fi
+
+          done
+
+      - name: Parar VM com segurança
+        if: always()
+        shell: bash
+        run: |
+          chmod +x scripts/stop-vm.sh
+
+          ./scripts/stop-vm.sh || true
+
       - name: Salvar estado
         if: always()
         shell: bash
         run: |
-          ./scripts/save.sh
+          chmod +x scripts/save.sh
+
+          ./scripts/save.sh || true
+
+      - name: Informações finais
+        if: always()
+        shell: bash
+        run: |
+          echo "======================================"
+          echo "FINALIZADO"
+          echo "======================================"
+
+          if [ -f vm/windows11.qcow2 ]; then
+            echo ""
+            echo "Disco:"
+            qemu-img info vm/windows11.qcow2
+          fi
+
+          if [ -f state/windows11-latest.qcow2 ]; then
+            echo ""
+            echo "Estado salvo:"
+            ls -lh state/windows11-latest.qcow2
+          fi
+          
