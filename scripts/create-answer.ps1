@@ -1,11 +1,3 @@
-# Exemplo de configuração para instalação automática.
-#
-# Usuário:
-# DANIEL
-#
-# Senha:
-# DANIEL
-
 $UserName = "DANIEL"
 $Password = "DANIEL"
 
