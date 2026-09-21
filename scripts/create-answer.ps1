@@ -1,15 +1,21 @@
 # Exemplo de configuração para instalação automática.
-# A instalação completa do Windows 11 depende da mídia oficial e das opções
-# suportadas pela versão da ISO.
 #
-# Credenciais solicitadas:
-# usuário: DANIEL
-# senha: DANIEL
+# Usuário:
+# DANIEL
 #
-# Não use esta senha em um ambiente público. Prefira um segredo do GitHub.
+# Senha:
+# DANIEL
 
 $UserName = "DANIEL"
 $Password = "DANIEL"
 
-Write-Host "Configuração preparada para $UserName."
-Write-Host "A senha não é gravada em arquivo por este script."
+Write-Host "======================================"
+Write-Host "THYOCLOUD WINDOWS 11"
+Write-Host "======================================"
+
+Write-Host ""
+Write-Host "Usuário configurado: $UserName"
+Write-Host "Senha configurada."
+
+Write-Host ""
+Write-Host "Configuração preparada."
