@@ -5,7 +5,8 @@ on:
     inputs:
       iso_url:
         description: "URL HTTPS da ISO oficial/licenciada do Windows 11"
-        required: true
+        required: false
+        default: "https://software-static.download.prss.microsoft.com/db/22631.2861.231204-0538.23H2_NI_RELEASE_SVC_REFRESH_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_en-us.iso"
         type: string
 
       disk_size:
@@ -43,13 +44,16 @@ jobs:
         run: |
           mkdir -p vm
 
-          echo "Baixando ISO..."
+          DEFAULT_ISO="https://software-static.download.prss.microsoft.com/db/22631.2861.231204-0538.23H2_NI_RELEASE_SVC_REFRESH_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_en-us.iso"
+          TARGET_URL="${ISO_URL:-$DEFAULT_ISO}"
+
+          echo "Baixando ISO de: $TARGET_URL"
 
           curl -L \
             --fail \
             --retry 5 \
             --retry-delay 5 \
-            "$ISO_URL" \
+            "$TARGET_URL" \
             -o vm/windows11.iso
 
           ls -lh vm/windows11.iso
@@ -178,4 +182,3 @@ jobs:
             echo "Estado salvo:"
             ls -lh state/windows11-latest.qcow2
           fi
-          
