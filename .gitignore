@@ -1,5 +1,7 @@
 vm/windows11.iso
 vm/windows11.qcow2
 state/windows11-latest.qcow2
+
 *.vhdx
 *.qcow2
+*.iso
